@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<toolchains>
+  <!-- JDK 21 LTS -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>21</version>
+  <!--    <vendor>Temurin</vendor>  -->
+    </provides>
+    <configuration>
+      <jdkHome>/var/jenkins_home/tools/hudson.model.JDK/jdk-21</jdkHome>
+    </configuration>
+  </toolchain>
+
+  <!-- JDK 17 LTS -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>17</version>
+  <!--    <vendor>Temurin</vendor>  -->
+    </provides>
+    <configuration>
+      <jdkHome>/var/jenkins_home/tools/hudson.model.JDK/jdk-17</jdkHome>
+    </configuration>
+  </toolchain>
+
+  <!-- JDK 11 legacy LTS -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>11</version>
+  <!--    <vendor>Temurin</vendor>  -->
+    </provides>
+    <configuration>
+      <jdkHome>/var/jenkins_home/tools/hudson.model.JDK/jdk-11</jdkHome>
+    </configuration>
+  </toolchain>
+
+  <!-- JDK 8 (maintenance only) -->
+  <toolchain>
+    <type>jdk</type>
+    <provides>
+      <version>8</version>
+  <!--    <vendor>Temurin</vendor>  -->
+    </provides>
+    <configuration>
+      <jdkHome>/var/jenkins_home/tools/hudson.model.JDK/jdk-8</jdkHome>
+    </configuration>
+  </toolchain>
+</toolchains>

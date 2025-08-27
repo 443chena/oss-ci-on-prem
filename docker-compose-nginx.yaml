@@ -1,0 +1,49 @@
+name: ci_env
+services:
+
+  # Reverse proxy openresty/openresty:1.27.1.2-3-alpine-slim
+  nginx:
+    image: ${REVERSE_PROXY_IMAGE}
+    container_name: nginx
+    env_file: [.env_containers/.env_rev_proxy]
+
+    entrypoint: ["/usr/local/bin/rev_proxy_entrypoint.sh"]
+    ports:
+      - "${HTTPS_PORT}:443"
+      - "${HTTP_PORT}:80"
+    volumes:
+      - ./container-mng/nginx/rev_proxy_entrypoint.sh:/usr/local/bin/rev_proxy_entrypoint.sh:ro
+      - ./container-mng/nginx/nginx.conf.template:/usr/local/openresty/nginx/conf/nginx.conf.template:ro
+      - ${CERT_FULLCHAIN}:/usr/local/openresty/nginx/conf/cert/fullchain.pem:ro
+      - ${CERT_PRIVKEY}:/usr/local/openresty/nginx/conf/cert/privkey.pem:ro
+    healthcheck:
+      test: ["CMD-SHELL","/usr/local/openresty/nginx/sbin/nginx -t -c /usr/local/openresty/nginx/conf/nginx.conf || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 50
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    logging:
+      driver: "json-file"
+      options: {max-size: "50m", max-file: "3"}
+    networks:
+      ssl_term_IG_net:
+        aliases:
+        - ${SERVER_NAME_JENKINS}
+        - ${SERVER_NAME_ARTI}
+      bcm_net:
+        aliases:
+        - ${SERVER_NAME_ARTI}.${ENV_DOMAIN}
+      ci_srv_net:
+        aliases:
+        - ${SERVER_NAME_JENKINS}.${ENV_DOMAIN}
+
+networks:
+  ssl_term_IG_net:
+    external: true
+  bcm_net:
+    external: true
+  ci_srv_net:
+    external: true

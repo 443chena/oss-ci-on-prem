@@ -1,0 +1,233 @@
+<!--  Maven client settings configuration for Maven 3.9.11  -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 http://maven.apache.org/xsd/settings-1.2.0.xsd">
+
+  <!--  Credentials section  -->
+  <servers>
+    <server>
+      <id>arti</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <server>
+      <id>arti-virtual</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <!-- Local and central repository identifiers for fallback profiles -->
+    <server>
+      <id>libs-release</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <server>
+      <id>libs-snapshot</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <server>
+      <id>maven-central</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <!-- Duplicate ids allow projects to refer to release, snapshot, or central in their POMs -->
+    <server>
+      <id>release</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <server>
+      <id>snapshot</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+    <server>
+      <id>central</id>
+      <username>${env.ART_USER}</username>
+      <password>${env.ART_TOKEN}</password>
+    </server>
+  </servers>
+
+  <!--   Plugin groups  -->
+  <pluginGroups>
+    <pluginGroup>org.apache.maven.plugins</pluginGroup>
+    <pluginGroup>org.codehaus.mojo</pluginGroup>
+    <pluginGroup>org.jfrog.buildinfo</pluginGroup>
+    <pluginGroup>org.cyclonedx</pluginGroup>
+    <pluginGroup>org.sonarsource.scanner.maven</pluginGroup>
+    <pluginGroup>com.github.eirslett</pluginGroup>
+  </pluginGroups>
+
+  <!--    Mirrors  -->
+  <mirrors>
+    <mirror>
+      <id>arti-virtual</id>
+      <name>Artifactory Virtual (all)</name>
+      <url>${env.ART_URL}/maven-virtual-lib-proxy</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+
+  <!--    Profiles  -->
+  <profiles>
+    <profile>
+      <id>artifactory-virtual</id>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>arti-virtual</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/maven-virtual-lib-proxy</url>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+
+    <profile>
+      <id>artifactory-direct</id>
+      <repositories>
+        <!-- Local release repository -->
+        <repository>
+          <id>libs-release</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-release-local</url>
+        </repository>
+        <!-- Local snapshot repository -->
+        <repository>
+          <id>libs-snapshot</id>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-snapshot-local</url>
+        </repository>
+        <!-- Proxy to Maven Central -->
+        <repository>
+          <id>maven-central</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/maven-central</url>
+        </repository>
+        <!-- Aliases for 'release', 'snapshot' and 'central' to handle different POM ids -->
+        <repository>
+          <id>release</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-release-local</url>
+        </repository>
+        <repository>
+          <id>snapshot</id>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-snapshot-local</url>
+        </repository>
+        <repository>
+          <id>central</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/maven-central</url>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <!-- Plugin repository definitions mirror the artifact repositories above -->
+        <pluginRepository>
+          <id>libs-release</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-release-local</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>libs-snapshot</id>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-snapshot-local</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>maven-central</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/maven-central</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>release</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-release-local</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>snapshot</id>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/libs-snapshot-local</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>central</id>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <url>${env.ART_URL}/maven-central</url>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+
+  <!-- Activate the virtual profile by default -->
+  <activeProfiles>
+    <activeProfile>artifactory-virtual</activeProfile>
+  </activeProfiles>
+
+  <!--    Non‑interactive build configuration  -->
+  <interactiveMode>false</interactiveMode>
+  <offline>false</offline>
+
+</settings>

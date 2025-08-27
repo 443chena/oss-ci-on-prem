@@ -1,0 +1,21 @@
+configVersion: 1
+shared:
+  node:
+    ip: ${SERVER_NAME_ARTI}
+    id: ${SERVER_NAME_ARTI}
+    name: ${SERVER_NAME_ARTI}
+    contextUrl: https://${SERVER_NAME_ARTI}/artifactory
+  jfrogUrl: https://${SERVER_NAME_ARTI}/artifactory
+  database:
+    type: ${JF_SHARED_DATABASE_TYPE}
+    driver: ${JF_SHARED_DATABASE_DRIVER}
+    url: ${JF_SHARED_DATABASE_URL}
+    username: ${JF_SHARED_DATABASE_USERNAME}
+    password: ${JF_SHARED_DATABASE_PASSWORD}
+  security:
+    joinKey: ${JF_SHARED_SECURITY_JOINKEY}
+    masterKey: ${JF_SHARED_SECURITY_MASTERKEY}
+router:
+  entrypoints:
+    externalPort: ${ARTIFACTORY_ROUTER_PORT}
+

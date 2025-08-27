@@ -1,0 +1,48 @@
+name: ci_env
+services:
+  # sidecar | prep jenkins volume | busybox@sha256:74322b4716a11835c6f413fe9ffc2608ffdb8452f51cad9514a2b804908dc16e
+  init-jenkins-vol:
+    image: ${INIT_CONTAINER_IMAGE}
+    command: sh -c "chown -R 1000:1000 /var/jenkins_home && chmod -R 755 /var/jenkins_home/"
+      - jenkins_home:/var/jenkins_home
+    restart: "no"
+
+  jenkins:
+    build:
+      context: ./container-mng/jenkins
+      dockerfile: Dockerfile
+      args:
+        HOST_DOCKER_GID: "${HOST_DOCKER_GID:-984}"
+    container_name: ${SERVER_NAME_JENKINS}
+    extra_hosts: ["${SERVER_NAME_ARTI}.${ENV_DOMAIN}:host-gateway"]    
+    depends_on:
+      - init-jenkins-vol
+    env_file: [.env_containers/.env_jenkins]
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./container-mng/jenkins/maven_client/settings.xml:/var/jenkins_home/.m2/settings.xml:ro
+      - ./container-mng/jenkins/maven_client/toolchains.xml:/var/jenkins_home/.m2/toolchains.xml:ro
+#      - ./container-mng/jenkins/maven_client/settings-security.xml:/var/jenkins_home/.m2/settings-security.xml:ro
+    networks:
+      - ci_srv_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${JENKINS_PORT}/login"]
+      interval: 4s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options: {max-size: "10m", max-file: "3"}
+
+volumes:
+  jenkins_home:
+    name: jenkins_home
+    external: true
+
+networks:
+  ci_srv_net:
+    external: true

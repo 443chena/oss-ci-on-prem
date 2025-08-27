@@ -1,0 +1,113 @@
+worker_processes  auto;
+error_log         logs/error.log warn;
+pid               logs/nginx.pid;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  include       /usr/local/openresty/nginx/conf/mime.types;
+  default_type  application/octet-stream;
+
+  # JSON access log
+  log_format main_json escape=json
+    '{ "time":"$time_iso8601", "remote":"$remote_addr", "request":"$request", '
+    '"status":$status, "bytes":$body_bytes_sent, "referer":"$http_referer", '
+    '"ua":"$http_user_agent" }';
+  access_log logs/access.log main_json;
+
+  server_tokens off;
+  sendfile on;
+  tcp_nopush on;
+  keepalive_timeout 65s;
+
+  # for Large uploads:
+  client_max_body_size 4g;
+
+  # Upgrade header helper --> WebSockets
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+  }
+
+  # ------------------ Artifactory ------------------
+  server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${SERVER_NAME_ARTI}.${ENV_DOMAIN} ${SERVER_NAME_ARTI}.${ENV_DOMAIN};
+  
+    ssl_certificate     /usr/local/openresty/nginx/conf/cert/fullchain.pem;
+    ssl_certificate_key /usr/local/openresty/nginx/conf/cert/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+  
+    proxy_connect_timeout 60s;
+    proxy_send_timeout    900s;
+    proxy_read_timeout    900s;
+  
+    location / {
+      proxy_pass http://${SERVER_NAME_ARTI}:${ARTIFACTORY_ROUTER_PORT};
+  
+      proxy_set_header Host              $host;
+      proxy_set_header X-Forwarded-Host  $host;
+      proxy_set_header X-Real-IP         $remote_addr;
+      proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Port  443;
+  
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade    $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+  
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header Content-Security-Policy "upgrade-insecure-requests" always;
+    }
+  }
+
+
+  # ------------------ Jenkins ------------------
+  server {
+#    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
+    server_name ${SERVER_NAME_JENKINS}.${ENV_DOMAIN};
+
+    ssl_certificate     /usr/local/openresty/nginx/conf/cert/fullchain.pem;
+    ssl_certificate_key /usr/local/openresty/nginx/conf/cert/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Jenkins support --> streaming & websockets
+    proxy_connect_timeout 60s;
+    proxy_send_timeout    300s;
+    proxy_read_timeout    300s;
+    proxy_buffering       off;
+
+    location / {
+      proxy_pass http://${SERVER_NAME_JENKINS}:${JENKINS_PORT};
+
+      proxy_set_header Host              $host;
+      proxy_set_header X-Real-IP         $remote_addr;
+      proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Port  443;
+      proxy_set_header X-Forwarded-Host  $host;
+
+      
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header Content-Security-Policy "upgrade-insecure-requests" always;
+
+
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade    $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+    }
+  }
+
+  # ------------------  redirect to HTTPS  ------------------
+  server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+  }
+}
