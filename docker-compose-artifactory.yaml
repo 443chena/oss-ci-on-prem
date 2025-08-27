@@ -1,0 +1,112 @@
+name: ci_env
+services:
+
+  # sidecar | prep Postgres volume | busybox@sha256:74322b4716a11835c6f413fe9ffc2608ffdb8452f51cad9514a2b804908dc16e
+  postgres-init:
+    image: ${INIT_CONTAINER_IMAGE}
+    env_file: [.env_containers/.env_arti_db]
+    volumes:
+      - vol_art_db:/var/lib/postgresql/data
+      - ./container-mng/postgres/init-postgres-sidecar.sh:/entrypoint.sh:ro
+    entrypoint: ["sh", "/entrypoint.sh"]
+    restart: "no"
+
+  # sidecar | prep Artifactory volume | busybox@sha256:74322b4716a11835c6f413fe9ffc2608ffdb8452f51cad9514a2b804908dc16e
+  artifactory-init:
+    image: ${INIT_CONTAINER_IMAGE}
+    env_file: [.env_containers/.env_arti]
+    volumes:
+      - vol_art_srv:/var/opt/jfrog/artifactory
+      - ./container-mng/artifactory/init-artifactory-sidecar.sh:/entrypoint.sh:ro
+    entrypoint: ["sh", "/entrypoint.sh"]
+    restart: "no"
+
+  # Database (internal only)
+  postgres:
+    image: ${DB_IMAGE}
+    container_name: ${DATABASE_CONTAINER_NAME}
+    env_file: [.env_containers/.env_arti_db]
+    volumes:
+      - vol_art_db:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+      - ./container-mng/postgres/init-psql-db.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -p ${DATABASE_PORT} -h 127.0.0.1
+      interval: 4s
+      timeout: 4s
+      retries: 30
+      start_period: 4s
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          memory: 1024m
+    logging:
+      driver: "json-file"
+      options: {max-size: "10m", max-file: "3"}
+    shm_size: "512m"
+    restart: always
+    networks:
+      - db_backend_net
+
+  # Artifactory OSS7
+  artifactory:
+    image: ${JF_ARTIFACTORY_IMAGE}
+    container_name: ${SERVER_NAME_ARTI}
+    env_file: [.env_containers/.env_arti]
+    environment:
+      - EXTRA_JAVA_OPTIONS=-Xms512m -Xmx2048m -XX:+UseG1GC
+    volumes:
+      - vol_art_srv:/var/opt/jfrog/artifactory
+      - /etc/localtime:/etc/localtime:ro
+      - ./container-mng/artifactory/system.yaml:/var/opt/jfrog/artifactory/var/etc/system.yaml
+    depends_on:
+      artifactory-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fS http://localhost:${ARTIFACTORY_ROUTER_PORT}/router/api/v1/system/health
+      interval: 4s
+      timeout: 4s
+      retries: 40
+      start_period: 4s
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+    logging:
+      driver: "json-file"
+      options: {max-size: "50m", max-file: "3"}
+    restart: always
+    ulimits:
+      nproc: 8192
+      nofile:
+        soft: 8192
+        hard: 65536
+    networks:
+      - bcm_net
+      - db_backend_net
+
+volumes:
+  vol_art_srv:
+    name: vol_art_srv
+    external: true
+  vol_art_db:
+    name: vol_art_db
+    external: true
+
+networks:
+  bcm_net:
+    external: true
+  db_backend_net:
+    external: true
+  jenkins_net:
+    external: true
+
