@@ -1,0 +1,62 @@
+
+###### docker-compose-monitoring.yaml
+name: ci_env
+services:
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3050:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring_net
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./container-mng/monitoring/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - monitoring_net
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./container-mng/monitoring/loki/loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/tmp/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    restart: unless-stopped
+    networks:
+      - monitoring_net
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+#      - /var/log:/var/log # Mount host logs
+      - ./container-mng/monitoring/loki/promtail-config.yaml:/etc/promtail/promtail-config.yaml
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    restart: unless-stopped
+    networks:
+      - monitoring_net
+
+volumes:
+  grafana_data:
+    external: true
+  prometheus_data:
+    external: true
+  loki_data:
+    external: true
+
+networks:
+  monitoring_net:
+    driver: bridge
+    external: true

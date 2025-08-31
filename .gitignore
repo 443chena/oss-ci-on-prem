@@ -143,7 +143,5 @@ backups/
 logs/
 spcipts/   # if typo directory is intentional
 security/
-container-mng/monitoring/
 container-mng/security-tools/
 docker-compose-exchange.yaml
-docker-compose-monitoring.yaml

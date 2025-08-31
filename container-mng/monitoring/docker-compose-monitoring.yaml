@@ -1,0 +1,65 @@
+name: ci_env
+services:
+  grafana:
+    image: grafana/grafana:10.4.6
+    ports:
+      - "3050:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+    restart: unless-stopped
+    networks: [monitoring_net]
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    restart: unless-stopped
+    networks: [monitoring_net]
+
+  loki:
+    image: grafana/loki:2.9.4
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/config.yaml -config.expand-env=true
+    restart: unless-stopped
+    networks: [monitoring_net]
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    volumes:
+      - ./loki/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+      - promtail_positions:/run/promtail
+
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    restart: unless-stopped
+    networks: [monitoring_net]
+    depends_on:
+      - loki
+
+volumes:
+  grafana_data:
+    external: true
+  prometheus_data:
+    external: true
+  loki_data:
+    external: true
+  promtail_positions:
+    external: true
+
+networks:
+  monitoring_net:
+    driver: bridge
+#    internal: true
+#    external: true
