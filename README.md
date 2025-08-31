@@ -17,6 +17,7 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 ---
 
 ## project tree: 
+```
 .
 ├── .gitignore
 ├── README.md
@@ -39,6 +40,7 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 ├── docker-compose-artifactory.yaml
 ├── docker-compose-jenkins.yaml
 └── docker-compose-nginx.yaml
+```
 
 ---
 
@@ -48,8 +50,8 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 | ----------------- | --------- | --------- |
 | Jobs              | ![image](./docs/img/artifactory-server-artifacts.png) | ![image](./docs/img/jenkinsfile-snippit2.png) |
 | Certificates      | ![image](./docs/img/cert-artifactory.png) | ![image](./docs/img/cert-jenkins.png) |
-| Toolchains / Jobs | ![image](./docs/img/gitlab-pipeline-tests-repo.png) | ![image](./docs/img/jenkins-java-toochain-2.png) |
-|                   | ![image](./docs/img/jenkins-job2-2.png) | ![image](./docs/img/jenkins-job3-2.png) |
+| Toolchains / Jobs | ![image](./docs/img/gitlab-pipeline-tests-repo.png) | ![image](./docs/img/jenkins-java-toochain.png) |
+|                   | ![image](./docs/img/jenkins-job2.png) | ![image](./docs/img/jenkins-job3.png) |
 | Scans             | ![image](./docs/img/monitor-stack-ongoing-implementation.png)<br>![image](./docs/img/secret-scan-trufflehog-deep-scan.png) | ![image](./docs/img/secret-scan-gitleaks-pre-commit-hooks.png) |
 
 ---
