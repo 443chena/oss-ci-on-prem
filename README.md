@@ -14,6 +14,7 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 
 ![Architecture](./docs/Jenkins-Artifactory-ENV-schema.png)
 
+---
 
 ## project tree: 
 .
@@ -38,6 +39,18 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 ├── docker-compose-artifactory.yaml
 ├── docker-compose-jenkins.yaml
 └── docker-compose-nginx.yaml
+
+---
+
+## Environment Showcase
+
+| Section           | Example A | Example B |
+| ----------------- | --------- | --------- |
+| Jobs              | ![image](./docs/img/artifactory-server-artifacts.png) | ![image](./docs/img/jenkinsfile-snippit2.png) |
+| Certificates      | ![image](./docs/img/cert-artifactory.png) | ![image](./docs/img/cert-jenkins.png) |
+| Toolchains / Jobs | ![image](./docs/img/gitlab-pipeline-tests-repo.png) | ![image](./docs/img/jenkins-java-toochain-2.png) |
+|                   | ![image](./docs/img/jenkins-job2-2.png) | ![image](./docs/img/jenkins-job3-2.png) |
+| Scans             | ![image](./docs/img/monitor-stack-ongoing-implementation.png)<br>![image](./docs/img/secret-scan-trufflehog-deep-scan.png) | ![image](./docs/img/secret-scan-gitleaks-pre-commit-hooks.png) |
 
 ---
 
@@ -117,4 +130,8 @@ When your domain registrar lacks a free API, point only the subdomains you use f
 - Image scan and attest
 - Automated DNS-01 renewals via cron job container
 
->>>>>>> 51dae41 (adding env project)
+
+## Current Status
+- Security hooks (gitleaks + trufflehog) integrated
+- Jenkins, Artifactory, Nginx stacks operational
+- Monitoring stack (Prometheus, Grafana, Loki, Promtail) scaffolded — WIP
