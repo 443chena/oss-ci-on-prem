@@ -13,6 +13,7 @@ Icon?
 Thumbs.db
 desktop.ini
 _mng
+_mng/
 .vscode/
 .idea/
 .nyc_output/
@@ -140,8 +141,6 @@ var/
 # === Local project ===
 workspace/
 backups/
-logs/
-spcipts/   # if typo directory is intentional
+secrets/
 security/
-container-mng/security-tools/
 docker-compose-exchange.yaml

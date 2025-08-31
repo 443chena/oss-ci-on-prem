@@ -41,7 +41,15 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
       - promtail_positions:/run/promtail
-
+volumes:
+  grafana_data:
+    external: true
+  prometheus_data:
+    external: true
+  loki_data:
+    external: true
+  promtail_positions:
+    external: true
     command: -config.file=/etc/promtail/promtail-config.yaml
     restart: unless-stopped
     networks: [monitoring_net]

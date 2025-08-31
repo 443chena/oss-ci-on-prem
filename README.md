@@ -12,6 +12,9 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 
 ---
 
+![Architecture](./docs/Jenkins-Artifactory-ENV-schema.png)
+
+
 ## project tree: 
 .
 ├── .gitignore
@@ -23,7 +26,6 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 │   ├── jenkins
 │   │   ├── Dockerfile
 │   │   ├── entrypoint.sh
-│   │   └── maven_client
 │   │       ├── settings-security.xml
 │   │       ├── settings.xml
 │   │       └── toolchains.xml

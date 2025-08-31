@@ -1,0 +1,25 @@
+# container-mng/security-tools/docker-compose.yaml
+name: security_tools
+services:
+  gitleaks:
+    image: ${GITLEAKS_IMAGE}
+    env_file: [.env_security]
+    working_dir: /repo
+    volumes:
+      - ${REPO_ROOT}:/repo:ro
+      - ${SEC_LOG_PATH}:${REPORT_DIR}:rw
+    command: >
+      detect --source /repo --report-format json
+      --report-path ${REPORT_DIR}/gitleaks-$(date +"%Y-%m-%d-%H-%M").json
+      --exit-code 1
+
+  trufflehog:
+    image: ${TRUFFLEHOG_IMAGE}
+    env_file: [.env]
+    working_dir: /repo
+    volumes:
+      - ${REPO_ROOT}:/repo:ro
+      - ${SEC_LOG_PATH}:${REPORT_DIR}:rw
+    command: >
+      git file:///repo --fail --no-update --no-color --json
+
