@@ -12,7 +12,7 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 
 ---
 
-![Architecture](./docs/Jenkins-Artifactory-ENV-schema.png)
+![Architecture](./docs/CI-env-and-shift-left-dev-workstation2.0.png)
 
 ---
 
