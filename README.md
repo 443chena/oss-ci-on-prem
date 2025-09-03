@@ -1,46 +1,37 @@
-# oss-ci-on-prem:
-@chena: On-premise CI/CD lab using open-source stack (Jenkins, GitLab, Artifactory/OSS7, Postgres/16, NGINX/OpenResty TLS termination, Docker Compose). Includes TLS via Let’s Encrypt and segregated Docker networks for service isolation. Built from scratch to showcase DevSecOps practices.
+# oss-ci-on-prem
 
+A reproducible **on-premise DevSecOps CI/CD lab** built entirely from open-source components.  
+Designed for **shift-left security**, reproducibility, and precision in build/test pipelines.
 
+---
 
+## Architecture Overview
 
-# On premise CI Environment - Jenkins, Artifactory, Nginx
+### Core Stack
 
-This project provides a reproducible on-prem CI/CD environment.  
-The stack includes Jenkins with JDK21 + Maven, JFrog Artifactory OSS, PostgreSQL backend, and an Nginx reverse proxy with TLS termination.  
-All containers are orchestrated with Docker Compose and parameterized through `.env` files. Secrets, certificates, and environment values are never committed - they are mounted at runtime.
+- **Jenkins LTS** with full JDK toolchains (8-21), Maven 3.9.11, Docker CLI + Compose plugin.
+- **JFrog Artifactory OSS7** with multi-repository layout (snapshots, releases, virtuals).
+- **PostgreSQL 16** backend database.
+- **NGINX/OpenResty reverse proxy** with:
+    - TLS termination (Let’s Encrypt DNS-01 challenge, API-based automated renewal).
+    - Hardened headers (HSTS, CSP).
+    - JSON access logs.
+- **Prometheus + Grafana + Loki + promtail** observability stack.
+
+### Networking Model
+
+- `ingress_net` - TLS termination + reverse proxy.
+- `bcm_internal_net` - internal service comms.
+- `postgres_net` - DB isolation.
+- `jenkins_net` - CI server-only traffic.
+
+All services run in **segregated Docker networks**, east-west traffic is routed through NGINX.  
+Only ports `80/443` are exposed to the host.
 
 ---
 
 ![Architecture](./docs/CI-env-and-shift-left-dev-workstation2.0.png)
 
----
-
-## project tree: 
-```
-.
-├── .gitignore
-├── README.md
-├── container-mng
-│   ├── artifactory
-│   │   ├── init-artifactory-sidecar.sh
-│   │   └── system.yaml
-│   ├── jenkins
-│   │   ├── Dockerfile
-│   │   ├── entrypoint.sh
-│   │       ├── settings-security.xml
-│   │       ├── settings.xml
-│   │       └── toolchains.xml
-│   ├── nginx
-│   │   ├── nginx.conf.template
-│   │   └── rev_proxy_entrypoint.sh
-│   └── postgres
-│       ├── init-postgres-sidecar.sh
-│       └── init-psql-db.sh
-├── docker-compose-artifactory.yaml
-├── docker-compose-jenkins.yaml
-└── docker-compose-nginx.yaml
-```
 
 ---
 
@@ -56,84 +47,195 @@ All containers are orchestrated with Docker Compose and parameterized through `.
 
 ---
 
-## Components
-- **Jenkins**: LTS with JDK21, Docker CLI + Compose plugin, Maven toolchains, custom entrypoint for environment prep.
-- **Artifactory OSS**: Routed through Nginx, configured with sidecar init script and `system.yaml`.
-- **PostgreSQL**: Dedicated init scripts for schema and user setup.
-- **Nginx (OpenResty)**: Reverse proxy with SSL termination, JSON logs, and hardened headers.
+## project tree: 
+```
+├── docker-compose-artifactory.yaml
+├── docker-compose-jenkins.yaml
+├── docker-compose-monitoring.yaml
+├── docker-compose-nginx.yaml
+├── net-plan
+│   └── network-arch
+├── README.md
+├── docs
+├── LICENSE
+├── container-mng
+│   ├── artifactory
+│   │   ├── init-artifactory-sidecar.sh
+│   │   └── system.yaml
+│   ├── jenkins
+│   │   ├── Dockerfile
+│   │   ├── entrypoint.sh
+│   │   └── maven_client
+│   │       ├── settings-security.xml
+│   │       ├── settings.xml
+│   │       └── toolchains.xml
+│   ├── nginx
+│   │   ├── nginx.conf.template
+│   │   └── rev_proxy_entrypoint.sh
+│   ├── postgres
+│   │   ├── init-postgres-sidecar.sh
+│   │   └── init-psql-db.sh
+│   ├── security-tools              # (shift left dev workstation)
+│   │   └── docker-compose.yaml     # Trufflehog + gitleaks
+│   ├── monitoring                  # monitoring stack - mid implementation
+│   │   ├── docker-compose-monitoring.yaml
+│   │   ├── grafana
+│   │   │   └── provisioning
+│   │   │       ├── dashboards
+│   │   │       └── datasources
+│   │   │           └── datasource.yaml
+│   │   ├── loki
+│   │   │   └── loki-config.yaml
+│   │   ├── prometheus
+│   │   │   └── prometheus.yaml
+│   │   └── promtail
+│   │       └── promtail-config.yaml
+├── _mng                             # env management (not uploaded)
+│   ├── backups                      # automation: deploy, hooks , bkp, destroy
+│   │   └── grand-pom.xml
+│   ├── env-logs
+│   ├── scripts                      
+│   ├── secrets
+│   │   └── .env_file_dir
+│   └── security
+│       └── logs
+│           ├── pre-commit
+│           └─── pre-push
+```
+
+---
+
+## Developer Workstation Security
+
+Git hooks enforce early secret detection and scanning:
+
+- **Pre-commit hook**
+    - `gitleaks` runs on staged code.
+- **Pre-push hook**
+    - `trufflehog` + `gitleaks` run before GitHub push.
+- **Execution model**
+    - Both scanners run inside hardened Docker containers.
+    - Mounted volumes:
+        - `${REPO_ROOT}:/repo:ro`
+        - `${SEC_LOG_PATH}:/logs:rw`
+    - Logs written to `_mng/security/logs`.
+
+This prevents credential leaks and enforces **fail-fast security** before CI/CD resources are consumed.  
+The same scanning containers are also mounted in **Jenkins pipelines** to enforce parity between local and CI environments.
+
+---
+
+## CI/CD Environment
+
+### Jenkins
+
+- Runs on JDK21 (default), with legacy toolchains (8, 11, 17).
+- Pipelines configured with:
+    - **Multi-named `settings.xml`** (repo endpoints, mirrors).
+    - **toolchains.xml** (auto JDK selection per build).
+- Integrated with GitLab SCM + Container Registry.
+- Slack notifications for build status.
+
+### Artifactory
+
+- Configured with `system.yaml` via sidecar init container.
+- Repo layout:
+    - `libs-release-local`
+    - `libs-snapshot-local`
+    - `libs-virtual` (aggregation).
+- All artifact routing forced through **NGINX TLS termination**. No direct bypass of HTTPS allowed.
+
+### PostgreSQL
+
+- Initialized with `init-postgres-sidecar.sh` and `init-psql-db.sh`.
+- Schema and user creation scripted, idempotent across rebuilds.
+- Volumes separated for DATA and METADATA.
+
+### NGINX
+
+- TLS certs mounted at runtime (`cert/fullchain.pem`, `cert/privkey.pem`).
+- Automated renewal via ACME DNS-01 challenge using API tokens from secondary DNS provider.
+- Only reverse proxy exposed. Jenkins and Artifactory have **no host ports** bound.
+
+---
+
+## Monitoring & Observability
+
+- **Prometheus**: metrics collection.
+- **Grafana**: dashboards + alerting.
+- **Loki** + **promtail**: log aggregation.
+- All monitoring containers scaffolded under `container-mng/monitoring/`.
+- Init scripts validate volume mounts and environment configs before startup.
+
+---
+
+## Security Model
+
+- **Secrets**:
+    - Stored in `.env_containers/*` (not committed).
+    - Mounted at runtime via environment files and Docker secrets.
+- **Exposure**:
+    - Only NGINX listens on host (80/443).
+    - All east-west traffic contained in Docker networks.
+- **Uploads**:
+    - Large file uploads routed through NGINX with size limits enforced.
+- **Headers**:
+    - HSTS, CSP, and hardened defaults enabled in `nginx.conf.template`.
 
 ---
 
 ## Usage
-1. Prepare `.env_containers` with required variables (`ART_USER`, `ART_TOKEN`, domain, ports, etc).
-2. Place TLS certs in mounted volume paths (`cert/fullchain.pem`, `cert/privkey.pem`) - not in repo.
-3. Start the stack:
-```sh
-       docker compose -f docker-compose-nginx.yaml -f docker-compose-artifactory.yaml -f docker-compose-jenkins.yaml up -d
+
+### Prerequisites
+
+- Docker Engine + Compose plugin.
+- Domain with DNS provider supporting API-based DNS-01 ACME validation.
+- TLS certs provisioned and mounted into `./cert/`.
+
+### Setup
+
+1. Prepare `.env_containers/` with:
+    - `ART_USER`, `ART_TOKEN`, `ENV_DOMAIN`, `SERVER_NAME_JENKINS`, `SERVER_NAME_ARTI`.
+2. Mount TLS certs into:
+    - `cert/fullchain.pem`
+    - `cert/privkey.pem`
+3. Start services:
+
+
+```bash
+docker compose \
+  -f docker-compose-nginx.yaml \
+  -f docker-compose-artifactory.yaml \
+  -f docker-compose-jenkins.yaml \
+  -f docker-compose-monitoring.yaml up -d
 ```
-4. Access services:
-- Jenkins: https://jenkins.<your-domain>
-- Artifactory: https://arti.<your-domain>
 
-## Notes
+### Access
 
-- Secrets, backups, logs, and real certificates are excluded from git and .gitignore enforces that.
-- The provided config files are templates for reproducible builds and safe to share publicly.
-- Designed for demonstration and learning purposes – not production hardened.
-
+- Jenkins: `https://jenkins.${ENV_DOMAIN}`
+- Artifactory: `https://arti.${ENV_DOMAIN}`
+- Grafana: `https://grafana.${ENV_DOMAIN}`
 
 ---
 
-## Architecture
-- **Ingress:** Nginx terminates TLS and routes to internal services.
-- **East-west:** Nginx talks HTTP to Jenkins and Artifactory over Docker networks only.
-- **State:** Artifactory data and Postgres volumes are named volumes. Backups handled outside the repo.
-- **Build flow (high level):**
-  1. Developer pushes to GitLab
-  2. Jenkins builds with JDK21 + Maven
-  3. Artifacts published to Artifactory via settings.xml
-  4. Optional container images pushed to a registry (future)
+## Roadmap
 
-
----
-
-## TLS and DNS
-- TLS termination at Nginx with `fullchain.pem` and `privkey.pem` mounted at runtime.
-- Certificates are not stored in git.
-- `nginx.conf.template` uses `${SERVER_NAME_JENKINS}` and `${SERVER_NAME_ARTI}` to keep domains configurable.
-
-## Let’s Encrypt with DNS-01 (free DNS API approach)
-When your domain registrar lacks a free API, point only the subdomains you use for CI to a DNS provider that offers a free API and ACME DNS-01 support. Example flow:
-1. Keep your main domain at Registrar A.
-2. Delegate CI subdomains to Provider B that has an API (e.g. `jenkins.example.com`, `arti.example.com`).
-3. Use an ACME client that supports DNS-01 with Provider B’s API token to obtain/renew certs offline.
-4. Mount `fullchain.pem` and `privkey.pem` into the Nginx container.
-
-**Why DNS-01:** no inbound ports needed, works behind NAT, compatible with internal-only services.
-
-## Environment variables
-- All sensitive values are in `.env_containers/*` and not committed.
-- Example variables: `ENV_DOMAIN`, `SERVER_NAME_JENKINS`, `SERVER_NAME_ARTI`, `ART_USER`, `ART_TOKEN`.
-
-## Security model (concise)
-- No secrets in repo. Secrets mounted via env files and volumes.
-- Only Nginx exposes ports 80 and 443.
-- Jenkins and Artifactory are not directly exposed on the host.
-- Large uploads allowed only at Nginx. Headers hardened (HSTS, CSP).
+- **monitoring stack**: Move behind NGINX SSL termination.
+- **IaC**: Terraform modules for reproducible infra.
+- **Kubernetes**: full orchestration + GitOps via Argo CD.
+- **Secrets**: HashiCorp Vault / OpenBao integration.
+- **Security stages**: SAST, SCA, SBOM generation, container scans.
+- **Cloud portability**: reproducible on AWS free-tier.
 
 ---
 
 ## Limitations
-- Demo-focused. No HA, no backups automation in this repo, no WAF, no rate limiting.
 
-## Roadmap
-- Jenkins Multibranch + GitLab integration
-- SBOM generation and signing
-- Image scan and attest
-- Automated DNS-01 renewals via cron job container
-
+- Demo-focused. no HA/DR or automated backup orchestration.
+- WAF/rate limiting not yet implemented.
+- Monitoring stack scaffolding still WIP.
 
 ## Current Status
 - Security hooks (gitleaks + trufflehog) integrated
 - Jenkins, Artifactory, Nginx stacks operational
-- Monitoring stack (Prometheus, Grafana, Loki, Promtail) scaffolded — WIP
+- Monitoring stack (Prometheus, Grafana, Loki, Promtail) scaffolded - WIP
